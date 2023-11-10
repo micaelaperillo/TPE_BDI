@@ -19,8 +19,7 @@ primary key (legajo, tt_izq),
 foreign key (legajo) references empleado,
 CHECK (tt_der>=tt_izq AND sueldo>=0 AND edad>=0));
 
-
-
+COPY empleados FROM '/empleados.csv' DELIMITER ',' CSV HEADER;
 
 CREATE OR REPLACE FUNCTION empregister() RETURNS TRIGGER AS $$
 BEGIN 
