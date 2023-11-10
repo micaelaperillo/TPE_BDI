@@ -16,5 +16,6 @@ edad int,
 tt_izq timestamp, 
 tt_der timestamp,
 primary key (legajo),
+primary key (tt_izq),
 foreign key (legajo) references empleado,
 CHECK (tt_der>=tt_izq AND sueldo>=0 AND edad>=0));
