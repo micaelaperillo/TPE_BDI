@@ -1,0 +1,19 @@
+DROP TABLE IF EXISTS empleado;
+DROP TABLE IF EXISTS empleado_tt;
+
+CREATE TABLE empleado (
+legajo int not null,
+nombre varchar(30),
+sueldo int,
+edad int,
+primary key (legajo));
+
+CREATE TABLE empleado_tt (
+legajo int not null,
+nombre varchar(30),
+sueldo int,
+edad int,
+tt_izq timestamp, 
+tt_der timestamp,
+primary key (legajo),
+foreign key (legajo) references empleado);
