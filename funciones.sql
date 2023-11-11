@@ -54,9 +54,6 @@ BEGIN
            if Extract(year from pdate)!=extract(YEAR FROM CURRENT_DATE) THEN
                 RAISE notice 'La fecha tiene que ser de este año calendario';
                 return;
-                elseif pdate>current_timestamp then
-                RAISE notice 'La fecha entrante es mayor a la actual';
-                return;
            end if;
         RAISE NOTICE '--------------------------------------------------------------------------------';
         RAISE NOTICE '---------------------------HISTORIAL DE EMPLEADOS-------------------------------'; 
