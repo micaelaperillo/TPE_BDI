@@ -44,13 +44,20 @@ execute function empregister();
 CREATE OR REPLACE FUNCTION historial_empleados(pdate timestamp) RETURNS VOID AS $$
         DECLARE 
                 myCursor CURSOR FOR SELECT legajo, nombre, sueldo, edad, tt_izq, tt_der 
-                FROM empleados_tt order by legajo, Nro_Movimiento;
+                FROM empleado_tt order by legajo;
 
           rec RECORD;    
           Nro_Movimiento int := 0;
-         
+          leg_anterior int :=null;
 
 BEGIN
+           if Extract(year from pdate)!=extract(YEAR FROM CURRENT_DATE) THEN
+                RAISE notice 'La fecha tiene que ser de este año calendario';
+                return;
+                elseif pdate>current_timestamp then
+                RAISE notice 'La fecha entrante es mayor a la actual';
+                return;
+           end if;
         RAISE NOTICE '--------------------------------------------------------------------------------';
         RAISE NOTICE '---------------------------HISTORIAL DE EMPLEADOS-------------------------------'; 
         RAISE NOTICE '--------------------------------------------------------------------------------';
@@ -59,11 +66,16 @@ BEGIN
         OPEN MYCURSOR;
 LOOP
                 FETCH MYCURSOR INTO REC;
-                EXIT WHEN NOT FOUND;
-                RAISE NOTICE '';
-              PERFORM checkState(pdate, REC, Nro_Movimiento);
+
+                EXIT WHEN NOT FOUND;    
+              if(leg_anterior is null or leg_anterior=rec.legajo) then
                   Nro_Movimiento := Nro_Movimiento + 1;
-                END LOOP;
+              else 
+                  Nro_Movimiento:=1;
+             end if;
+             leg_anterior:=rec.legajo;
+             PERFORM checkState(pdate, REC, Nro_Movimiento);
+ END LOOP;
 
  CLOSE myCursor;
  end;
@@ -74,11 +86,10 @@ CREATE OR REPLACE FUNCTION checkState(ppdate timestamp, rec RECORD, Nro_Movimien
         estado VARCHAR(30);
    
 BEGIN
-        if Extract(year from ppdate)!=extract(YEAR FROM CURRENT_DATE) THEN
-                RAISE EXCEPTION 'la fecha tiene que ser de este año calendario';
-        ELSIF ppdate > rec.tt_izq AND rec.tt_der = 'infinity' THEN 
+
+        IF ppdate > rec.tt_izq AND rec.tt_der = 'infinity' THEN 
         estado := 'Vigente Anterior';
-    ELSIF ppdate > rec.tt_izq AND ppdate < rec.tt_der THEN 
+    ELSIF ppdate <= rec.tt_izq AND  rec.tt_der='infinity' THEN 
         estado := 'Vigente';
     ELSE
         estado := 'No Vigente';
@@ -89,59 +100,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION historial_empleados(pdate timestamp) RETURNS VOID AS $$
-        DECLARE 
-                myCursor CURSOR FOR SELECT legajo, nombre, sueldo, edad, tt_izq, tt_der
-                FROM empleado_tt  WHERE tt_izq<=pdate order by legajo; 
-
-          rec RECORD;           
-
-BEGIN
-        RAISE NOTICE '--------------------------------------------------------------------------------';
-        RAISE NOTICE '---------------------------HISTORIAL DE EMPLEADOS-------------------------------'; 
-        RAISE NOTICE '--------------------------------------------------------------------------------';
-        RAISE NOTICE '--------Estado-------Legajo-------Sueldo-------Edad-------Nro_Movimiento--------';
-        RAISE NOTICE '--------------------------------------------------------------------------------';
-        OPEN MYCURSOR;
-LOOP
-                FETCH MYCURSOR INTO REC;
-                EXIT WHEN NOT FOUND;
-              PERFORM checkState(pdate, REC);
-                 
-                END LOOP;
-
- CLOSE myCursor;
- end;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION checkState(ppdate timestamp, rec RECORD) RETURNS VOID AS $$
-    DECLARE 
-        estado VARCHAR(30);
-        movimiento_count INT;
-    BEGIN
-        -- Define the state based on the provided conditions
-        IF ppdate <= rec.tt_izq AND rec.tt_der = 'infinity' THEN 
-            estado := 'Vigente';
-        ELSIF ppdate > rec.tt_izq AND rec.tt_der = 'infinity' THEN 
-            estado := 'Vigente Anterior';
-        ELSEIF rec.tt_izq <= ppdate AND rec.tt_der != 'infinity' THEN
-            estado := 'No Vigente';
-        END IF;
-
-        -- Count the number of movements for the current 'legajo'
-         SELECT COUNT(*) INTO movimiento_count
-        FROM empleado_tt
-        WHERE legajo = rec.legajo AND rec.tt_izq >= tt_der;
-
-        -- Output the results
-        RAISE NOTICE '% % % % %', estado, rec.legajo, rec.sueldo, rec.edad, movimiento_count+1;
-
-    EXCEPTION WHEN OTHERS THEN
-        -- Handle other exceptions here
-        RAISE NOTICE 'An error occurred: %', SQLERRM;
-    END;
-$$ LANGUAGE plpgsql;
 
 
 
